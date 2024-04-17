@@ -75,7 +75,9 @@ const DocumentPreviewer: React.FC<DocumentPreviewerProps> = memo(() => {
       const container = imageRef.current?.parentElement;
       const containerRect = container?.getBoundingClientRect();
 
+      if(checkedFields.length === fields.length) return;
       if (!imgRect || !containerRect) return;
+      
 
       const x = event.clientX - (imgRect?.left ?? 0);
       const y = event.clientY - (imgRect?.top ?? 0);
@@ -93,7 +95,7 @@ const DocumentPreviewer: React.FC<DocumentPreviewerProps> = memo(() => {
         setHighlightedElement(null);
       }
     },
-    [fields, heightScaleFactor, setHighlightedElement, updateHighlightedElement, widthScaleFactor]
+    [checkedFields.length, fields, heightScaleFactor, setHighlightedElement, updateHighlightedElement, widthScaleFactor]
   );
 
   useEffect(() => {

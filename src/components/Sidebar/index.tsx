@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { Button, Checkbox, Popover } from "antd";
+import { Button, Checkbox, Popover, message } from "antd";
 import { MoreOutlined } from "@ant-design/icons";
 import { Field, useDocPreviewContext } from "../../context/DocPreviewContext";
 import ConfirmationModal from "../ConfirmationModal";
@@ -68,7 +68,14 @@ const Sidebar: React.FC<SidebarProps> = memo(() => {
 
   const handleFieldConfirmation = useCallback(() => {
     setShowModal(!showModal);
-  }, [showModal]);
+    message.success("Fields confirmed and processed successfully!");
+    setCheckedFields([]);
+  }, [setCheckedFields, showModal]);
+
+  const handleCancelConfirmation = useCallback(() => {
+    setShowModal(!showModal);
+    setCheckedFields([]);
+  }, [setCheckedFields, showModal]);
 
   const isHighLighted = useCallback(
     (id: number) => {
@@ -132,7 +139,7 @@ const Sidebar: React.FC<SidebarProps> = memo(() => {
       <ConfirmationModal
         open={showModal}
         onOk={() => handleFieldConfirmation()}
-        onCancel={() => setShowModal(!showModal)}
+        onCancel={() => handleCancelConfirmation()}
       />
     </>
   );
