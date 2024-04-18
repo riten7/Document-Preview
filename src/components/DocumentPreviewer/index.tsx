@@ -1,11 +1,17 @@
-import React, { ChangeEvent, useRef, useCallback, memo, useEffect } from "react";
+import React, {
+  useRef,
+  useCallback,
+  memo,
+  useEffect,
+  useMemo,
+} from "react";
 import ReviewImage from "../../assets/images/review.jpg";
-import { Field, useDocPreviewContext } from "../../context/DocPreviewContext";
-import { DocumentPreviewerWrapper, PreviewContainer, ZoomOptions } from "../styles";
-
-interface DocumentPreviewerProps {
-  imageUrl?: string;
-}
+import { useDocPreviewContext } from "../../context/DocPreviewProvider";
+import LazyImage from "../helpers/LazyImage";
+import { Select } from "antd";
+import { getZoomLevels } from "../../utils";
+import { DocumentPreviewerProps, Field } from "../../types";
+import { DocumentPreviewerWrapper, HighlightedElementBox, PreviewContainer, ZoomOptions } from "../../styles";
 
 const DocumentPreviewer: React.FC<DocumentPreviewerProps> = memo(() => {
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -15,17 +21,21 @@ const DocumentPreviewer: React.FC<DocumentPreviewerProps> = memo(() => {
     setZoomLevel,
     fieldsData: fields,
     checkedFields,
+    setCheckedFields,
     highlightedElement,
     setHighlightedElement,
   } = useDocPreviewContext();
 
-  const handleChangeZoom = (event: ChangeEvent<HTMLSelectElement>) => {
-    setZoomLevel(event.target.value);
+  const zoomLevels = getZoomLevels();
+
+  const handleChangeZoom = (value: string) => {
+    setCheckedFields([]);
+    setZoomLevel(value);
   };
 
   const calculateScalingFactors = () => {
-    const originalWidth = 1700;
-    const originalHeight = 2200;
+    const originalWidth = 1700; // original image width
+    const originalHeight = 2200; // original image height
     const displayedWidth = imageRef.current?.clientWidth ?? 0;
     const displayedHeight = imageRef.current?.clientHeight ?? 0;
 
@@ -37,24 +47,39 @@ const DocumentPreviewer: React.FC<DocumentPreviewerProps> = memo(() => {
 
   const { widthScaleFactor, heightScaleFactor } = calculateScalingFactors();
 
-  console.log({ checkedFields })
-
-  const updateHighlightedElement = useCallback((matchedElement: Field) => {
+  const checkedElements = useMemo(() => {
     const container = imageRef.current?.parentElement;
 
     const scrollLeft = container?.scrollLeft ?? 0;
     const scrollTop = container?.scrollTop ?? 0;
 
-    const [x1, y1, x2, y2] = matchedElement.position;
+    const newElements = checkedFields.map((field) => {
+      const [x1, y1, x2, y2] = field.position;
 
-    setHighlightedElement((prevElements) => {
-      const existingElement = prevElements?.find((element) => element.id === matchedElement.id);
-      if (existingElement) {
-        return prevElements; // Return the existing array if an element with the same id already exists
-      }
-    
-      return [
-        ...prevElements ?? [],
+      return {
+        id: field.id,
+        position: [
+          (x1 - scrollLeft) / widthScaleFactor,
+          (y1 - scrollTop) / heightScaleFactor,
+          (x2 - scrollLeft) / widthScaleFactor,
+          (y2 - scrollTop) / heightScaleFactor,
+        ],
+      };
+    });
+    return newElements;
+  }, [checkedFields, heightScaleFactor, widthScaleFactor]);
+
+  const updateHighlightedElementOnHover = useCallback(
+    (matchedElement: Field) => {
+      const container = imageRef.current?.parentElement;
+
+      const scrollLeft = container?.scrollLeft ?? 0;
+      const scrollTop = container?.scrollTop ?? 0;
+
+      const [x1, y1, x2, y2] = matchedElement.position;
+
+      setHighlightedElement([
+        ...checkedElements,
         {
           id: matchedElement.id,
           position: [
@@ -64,10 +89,15 @@ const DocumentPreviewer: React.FC<DocumentPreviewerProps> = memo(() => {
             (y2 - scrollTop) / heightScaleFactor,
           ],
         },
-      ];
-    });
-
-  }, [heightScaleFactor, setHighlightedElement, widthScaleFactor]);
+      ]);
+    },
+    [
+      checkedElements,
+      heightScaleFactor,
+      setHighlightedElement,
+      widthScaleFactor,
+    ]
+  );
 
   const handleMouseMove = useCallback(
     (event: React.MouseEvent<HTMLImageElement>) => {
@@ -75,9 +105,8 @@ const DocumentPreviewer: React.FC<DocumentPreviewerProps> = memo(() => {
       const container = imageRef.current?.parentElement;
       const containerRect = container?.getBoundingClientRect();
 
-      if(checkedFields.length === fields.length) return;
+      if (checkedFields.length === fields.length) return;
       if (!imgRect || !containerRect) return;
-      
 
       const x = event.clientX - (imgRect?.left ?? 0);
       const y = event.clientY - (imgRect?.top ?? 0);
@@ -90,59 +119,57 @@ const DocumentPreviewer: React.FC<DocumentPreviewerProps> = memo(() => {
         return scaledX >= x1 && scaledX <= x2 && scaledY >= y1 && scaledY <= y2;
       });
       if (matchedElement) {
-        updateHighlightedElement(matchedElement);
+        updateHighlightedElementOnHover(matchedElement);
       } else {
-        setHighlightedElement(null);
+        setHighlightedElement(checkedElements);
       }
     },
-    [checkedFields.length, fields, heightScaleFactor, setHighlightedElement, updateHighlightedElement, widthScaleFactor]
+    [
+      checkedElements,
+      checkedFields.length,
+      fields,
+      heightScaleFactor,
+      setHighlightedElement,
+      updateHighlightedElementOnHover,
+      widthScaleFactor,
+    ]
   );
 
   useEffect(() => {
     if (checkedFields.length === 0) {
       setHighlightedElement(null);
     } else {
-      checkedFields.map((field) => updateHighlightedElement(field));
+      setHighlightedElement(checkedElements);
     }
-  }, [checkedFields, setHighlightedElement, updateHighlightedElement]);
-
-
-  console.log({ highlightedElement })
+  }, [checkedElements, checkedFields, setHighlightedElement]);
 
   return (
     <DocumentPreviewerWrapper>
       <ZoomOptions>
-        <select value={zoomLevel} onChange={handleChangeZoom}>
-          <option value="fit">Fit</option>
-          <option value="75%">75%</option>
-          <option value="100%">100%</option>
-        </select>
+        <Select
+          value={zoomLevel}
+          onChange={handleChangeZoom}
+          options={zoomLevels} />
       </ZoomOptions>
-      <PreviewContainer>
-        <img
+      <PreviewContainer onMouseMove={handleMouseMove}>
+        <LazyImage
           ref={imageRef}
           src={ReviewImage}
-          loading="lazy"
           alt="Document Preview"
           style={{ width: zoomLevel }}
-          onMouseMove={handleMouseMove}
         />
         {highlightedElement &&
           highlightedElement.length > 0 &&
           highlightedElement.map((element) => (
-            <div
-              className="highlighted-element"
-              style={{
-                position: "absolute",
-                top: element.position?.[1] ?? 0,
-                left: element.position?.[0] ?? 0,
-                width:
-                  (element.position?.[2] ?? 0) - (element.position?.[0] ?? 0),
-                height:
-                  (element.position?.[3] ?? 0) - (element.position?.[1] ?? 0),
-                background: "#FF7A59",
-                opacity: .6,
-              }}
+            <HighlightedElementBox
+              top={element.position?.[1] ?? 0}
+              left={element.position?.[0] ?? 0}
+              width={
+                (element.position?.[2] ?? 0) - (element.position?.[0] ?? 0)
+              }
+              height={
+                (element.position?.[3] ?? 0) - (element.position?.[1] ?? 0)
+              }
             />
           ))}
       </PreviewContainer>

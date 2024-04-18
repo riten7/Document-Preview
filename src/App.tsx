@@ -3,7 +3,7 @@ import DocumentPreviewer from "./components/DocumentPreviewer";
 import Sidebar from "./components/Sidebar";
 import {
   useDocPreviewContext,
-} from "./context/DocPreviewContext";
+} from "./context/DocPreviewProvider";
 import { fieldsData } from "./utils";
 import styled from "styled-components";
 

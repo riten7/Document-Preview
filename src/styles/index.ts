@@ -23,9 +23,27 @@ export const PreviewContainer = styled.div`
 export const ZoomOptions = styled.div`
   margin: 10px;
 
-  select {
+  .ant-select  {
     height: 32px;
+    width: 80px;
   }
+`;
+
+type HighlightedElementBoxProps = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
+
+export const HighlightedElementBox = styled.div<HighlightedElementBoxProps>`
+  position: absolute;
+  top: ${({ top }) => `${top}px`};
+  left: ${({ left }) => `${left}px`};
+  width: ${({ width }) => `${width}px`};
+  height: ${({ height }) => `${height}px`};
+  background: #ff7a59;
+  opacity: 0.6;
 `;
 
 // Sidebar styles

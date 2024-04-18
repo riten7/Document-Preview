@@ -36,11 +36,12 @@ h1 {
 }
 
 .popover-remove {
+  height: 32px;
   .ant-btn {
     padding: 0;
     border: none;
     outline: none;
-    height: 24px;
+    height: 12px;
   }
 }
 

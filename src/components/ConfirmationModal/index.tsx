@@ -1,15 +1,9 @@
 import { Modal } from "antd";
-import React from "react";
+import React, { memo } from "react";
+import { ConfirmationModalProps } from "../../types";
 
-type ConfirmationModalProps = {
-    open: boolean;
-    onOk: () => void;
-    onCancel: () => void;
-    title?: string;
-}
-
-const ConfirmationModal: React.FC<ConfirmationModalProps> = (props) => {
-  const { open, onOk, onCancel, title } = props;
+const ConfirmationModal: React.FC<ConfirmationModalProps> = memo((props) => {
+  const { open, onOk, onCancel, title, content } = props;
 
   const hideModal = () => {
     onCancel();
@@ -24,9 +18,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = (props) => {
       okText='Confirm'
       cancelText='Cancel'
     >
-      <p>Are you sure you want to confirm the selected fields ?</p>
+      <p>{content}</p>
     </Modal>
   );
-};
+});
 
 export default ConfirmationModal;

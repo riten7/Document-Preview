@@ -1,12 +1,7 @@
 import jsonData from "../json/sections.json";
+import { Field } from "../types";
 
-interface Field {
-  title: string;
-  id: number;
-  value: string | number;
-  position: number[];
-}
-
+// mapping through original data to get the required fields
 export const fieldsData: Field[] = jsonData.data.sections.flatMap((section) => {
   const fields: Field[] = section.children.map((child) => ({
     title: child.label,
@@ -18,7 +13,7 @@ export const fieldsData: Field[] = jsonData.data.sections.flatMap((section) => {
   return fields;
 });
 
-
+// to get the color based on the text
 export const generateColor = (text: string) =>  {
   let hash = 0;
   for (let i = 0; i < text.length; i++) {
@@ -31,4 +26,12 @@ export const generateColor = (text: string) =>  {
   }
   
   return color;
+}
+
+export const getZoomLevels = () => {
+  return [
+    { value: 'fit-content', label: 'Fit' },
+    { value: '75%', label: '75%' },
+    { value: '100%', label: '100%' },
+  ];
 }

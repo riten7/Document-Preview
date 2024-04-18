@@ -1,31 +1,21 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { Button, Checkbox, Popover, message } from "antd";
-import { MoreOutlined } from "@ant-design/icons";
-import { Field, useDocPreviewContext } from "../../context/DocPreviewContext";
-import ConfirmationModal from "../ConfirmationModal";
+import { Button, message } from "antd";
+import { useDocPreviewContext } from "../../context/DocPreviewProvider";
 import {
-  Badge,
-  SideBarItem,
-  SideBarLeftSection,
-  SideBarRightSection,
   SidebarBottom,
-  SidebarContent,
   SidebarWrapper,
-} from "../styles";
-import { generateColor } from "../../utils";
+} from "../../styles";
+import SidebarContainer from "./SidebarContainer";
+import { Field } from "../../types";
 
-interface SidebarProps {
-  onFieldSelect?: (fieldId: string) => void;
-  onFieldRemove?: (fieldId: string) => void;
-}
+const ConfirmationModal = React.lazy(() => import("../ConfirmationModal"));
 
-const Sidebar: React.FC<SidebarProps> = memo(() => {
+const Sidebar: React.FC = memo(() => {
   const {
     fieldsData: fields,
     setFieldsData,
     checkedFields,
     setCheckedFields,
-    highlightedElement,
   } = useDocPreviewContext();
 
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -35,15 +25,17 @@ const Sidebar: React.FC<SidebarProps> = memo(() => {
     [checkedFields]
   );
 
+  const atLeastOneFieldSelected = useMemo(() => checkedFields.length > 0, [
+    checkedFields,
+  ]);
+
   const onFieldSelect = useCallback(
     (field: Field) => {
       const isAlreadyChecked = checkedFields.find(
-        (chkField) => chkField.id === field.id
+        (chkField: Field) => chkField.id === field.id
       );
       if (isAlreadyChecked) {
-        setCheckedFields(
-          checkedFields.filter(({ id}) => id !== field.id)
-        );
+        setCheckedFields(checkedFields.filter(({ id }) => id !== field.id));
       } else {
         setCheckedFields([...checkedFields, field]);
       }
@@ -53,93 +45,59 @@ const Sidebar: React.FC<SidebarProps> = memo(() => {
 
   const onFieldRemove = useCallback(
     (fieldId: number) => {
-      setFieldsData((fields) => fields.filter((field) => field.id !== fieldId));
-    },
-    [setFieldsData]
+      const filteredFields = fields.filter((field) => field.id !== fieldId);
+      setFieldsData(filteredFields);
+      },
+    [fields, setFieldsData]
   );
 
-  const handleSelectAll = useCallback(() => {
-    setCheckedFields(fields);
-  }, [fields, setCheckedFields]);
+  const handleSelectAll = () => setCheckedFields(fields);
+
+  const handleClearAll = () => setCheckedFields([]);
 
   const openConfirmation = useCallback(() => {
     setShowModal(!showModal);
   }, [showModal]);
 
-  const handleFieldConfirmation = useCallback(() => {
+  const resetFields = useCallback(() => {
     setShowModal(!showModal);
-    message.success("Fields confirmed and processed successfully!");
     setCheckedFields([]);
-  }, [setCheckedFields, showModal]);
+  }, [setCheckedFields, showModal])
+
+  const handleFieldConfirmation = useCallback(() => {
+    resetFields();
+    message.success("Fields confirmed and processed successfully!");
+  }, [resetFields]);
 
   const handleCancelConfirmation = useCallback(() => {
-    setShowModal(!showModal);
-    setCheckedFields([]);
-  }, [setCheckedFields, showModal]);
-
-  const isHighLighted = useCallback(
-    (id: number) => {
-      return highlightedElement?.some((element) => element.id === id);
-    },
-    [highlightedElement]
-  );
+    resetFields();
+  }, [resetFields]);
 
   return (
     <>
       <SidebarWrapper>
         <div className="field-title">Fields</div>
-        <SidebarContent>
-          {fields.map((field) => (
-            <SideBarItem
-              key={field.id}
-              className={`${isHighLighted(field.id) ? "highlight" : ""}`}
-            >
-              <SideBarLeftSection>
-                <Badge color={generateColor(field.title)}>
-                  {field.title.charAt(0)}
-                </Badge>
-                <div className="title-and-value">
-                  <div className="field-sub-title">{field.title}</div>
-                  <div className="field-value">{field.value}</div>
-                </div>
-              </SideBarLeftSection>
-              <SideBarRightSection>
-                <Checkbox
-                  checked={checkedFields.some(
-                    (chkField) => chkField.id === field.id
-                  )}
-                  onChange={() => onFieldSelect(field)}
-                />
-                <Popover
-                  overlayClassName="popover-remove"
-                  placement="topLeft"
-                  content={
-                    <Button onClick={() => onFieldRemove(field.id)}>
-                      Remove
-                    </Button>
-                  }
-                  getPopupContainer={(triggerNode) =>
-                    triggerNode?.parentNode as HTMLElement
-                  }
-                >
-                  <MoreOutlined />
-                </Popover>
-              </SideBarRightSection>
-            </SideBarItem>
-          ))}
-        </SidebarContent>
+        
+        <SidebarContainer
+          onFieldSelect={onFieldSelect}
+          onFieldRemove={onFieldRemove}
+        />
 
         <SidebarBottom>
-          <Button onClick={() => handleSelectAll()}>Select all</Button>
+          <Button onClick={handleSelectAll}>Select all</Button>
+          <Button disabled={!atLeastOneFieldSelected} onClick={handleClearAll}>Clear all</Button>
           <Button disabled={!multipleFieldsSelected} onClick={openConfirmation}>
             Confirm
           </Button>
         </SidebarBottom>
       </SidebarWrapper>
+
       <ConfirmationModal
         open={showModal}
-        onOk={() => handleFieldConfirmation()}
-        onCancel={() => handleCancelConfirmation()}
+        title="Confirmation"
+        content="Are you sure you want to confirm the selected fields ?"
+        onOk={handleFieldConfirmation}
+        onCancel={handleCancelConfirmation}
       />
     </>
   );
