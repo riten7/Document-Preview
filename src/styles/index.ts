@@ -13,6 +13,9 @@ export const DocumentPreviewerWrapper = styled.div`
 export const PreviewContainer = styled.div`
   width: 100%;
   position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
   img {
     max-width: 100%;
